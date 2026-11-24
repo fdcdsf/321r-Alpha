@@ -87,29 +87,37 @@ gen_init_app() { # роли/база + pg_hba для mesh; читает ЛОКА
 set -euo pipefail
 . /etc/db/secrets/@APP@.env
 q() { docker exec -u postgres pg-@APP@ psql -U postgres -tAc "$1"; }
-# Не `cmd && break` под set -e — так непонятно, что именно не так (здоровый PG считался «не поднявшимся за 180 с»). Явный флаг +
-# Диагностика при провале.
+# ВСЯ инициализация — идемпотентный блок В ПОВТОРЕ, а не только пробный запрос:
+# на первом старте postgres временно поднимает initdb-сервер, обслуживает им
+# первые запросы и гасит перед настоящим стартом. Проба «SELECT 1» успевала
+# ответить временному серверу, а CREATE ROLE/DATABASE падали «the database
+# system is shutting down» (вскрыто альфа-тестом: так падал шаг zabbix).
+# Повторяем весь блок до успеха: все запросы идемпотентны (проверка → создание).
+init_once() {
+  q "SELECT 1" >/dev/null 2>&1 || return 1
+  q "SELECT 1 FROM pg_roles WHERE rolname='replicator'" | grep -q '^1$' || \
+    q "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '${REPL_PASSWORD}'" || return 1
+  q "SELECT 1 FROM pg_roles WHERE rolname='@APP@'" | grep -q '^1$' || \
+    q "CREATE ROLE @APP@ WITH LOGIN PASSWORD '${APP_PASSWORD}'" || return 1
+  q "SELECT 1 FROM pg_database WHERE datname='@APP@'" | grep -q '^1$' || \
+    q "CREATE DATABASE @APP@ OWNER @APP@" || return 1
+  # JIT гасим: сложные запросы панелей с JIT на слабых нодах деградируют в 10+ секунд
+  # (план с битой статистикой + JIT = таймауты 57014 и пустые списки UI)
+  q "ALTER DATABASE @APP@ SET jit = off" || return 1
+  return 0
+}
 ok=""
 for _ in $(seq 1 180); do
-  if q "SELECT 1" >/dev/null 2>&1; then ok=1; break; fi
-  sleep 1
+  if init_once; then ok=1; break; fi
+  sleep 2
 done
 if [ -z "$ok" ]; then
-  echo "PG не поднялся за 180 с" >&2
+  echo "PG не поднялся или не инициализировался за 180 попыток" >&2
   docker ps -a --filter "name=pg-@APP@" --format '  {{.Names}} {{.State}} {{.Status}}' >&2 || true
   echo "  --- последние строки лога ---" >&2
   docker logs --tail 20 "pg-@APP@" >&2 || true
   exit 1
 fi
-q "SELECT 1 FROM pg_roles WHERE rolname='replicator'" | grep -q '^1$' || \
-  q "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '${REPL_PASSWORD}'"
-q "SELECT 1 FROM pg_roles WHERE rolname='@APP@'" | grep -q '^1$' || \
-  q "CREATE ROLE @APP@ WITH LOGIN PASSWORD '${APP_PASSWORD}'"
-q "SELECT 1 FROM pg_database WHERE datname='@APP@'" | grep -q '^1$' || \
-  q "CREATE DATABASE @APP@ OWNER @APP@"
-# JIT гасим: сложные запросы панелей с JIT на слабых нодах деградируют в 10+ секунд
-# (план с битой статистикой + JIT = таймауты 57014 и пустые списки UI)
-q "ALTER DATABASE @APP@ SET jit = off"
 # скрипт бежит на хосте: hba-файл лежит в хост-каталоге тома (там смонтирован PGDATA)
 HBA=/var/lib/dbdata/pg-@APP@/pg_hba.conf
 grep -q '10.66.0.0/24' "$HBA" || cat >> "$HBA" <<'HBA'
