@@ -46,7 +46,9 @@ chmod +x install/*.sh   # тарбол GitHub может прийти без б�
 
 # ВАЖНО: при «curl | bash» stdin — это пайп, а не терминал (мастер-вопросы
 # читать не откуда). Переключаем ввод мастера на настоящий терминал пользователя.
-if [ -e /dev/tty ]; then
+# Проверяем именно ОТКРЫВАЕМОСТЬ /dev/tty: при ssh без терминала устройство есть
+# (-e проходит), но открыть его нельзя — «No such device or address» (альфа-тест).
+if : </dev/tty 2>/dev/null; then
   exec bash install/install.sh < /dev/tty
 else
   exec bash install/install.sh
