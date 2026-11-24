@@ -381,7 +381,11 @@ step_komodo() {
 }
 step_remnawave(){ step "Remnawave, VPN-ноды и маскировка"; run_script remnawave-up.sh "Remnawave+маски"; }
 step_zabbix()   { [ "${ZABBIX_MODE:-off}" != install ] || run_script zabbix-up.sh "Zabbix HA"; }
-step_check()    { step "Автоприёмка";          bash "$HERE/install-check.sh"; }
+# Автоприёмка НЕ обрывает установку: памятка владельца и защита ssh должны дойти
+# даже когда приёмка нашла замечания (иначе владелец не получает секреты — альфа-тест:
+# set -e обрывал установку на красной приёмке, и handover/harden молча пропускались).
+CHECK_RC=0
+step_check()    { step "Автоприёмка"; CHECK_RC=0; bash "$HERE/install-check.sh" || CHECK_RC=$?; }
 step_handover() { step "Памятка владельца";    bash "$HERE/handover.sh"; }
 step_harden()   { step "Финальная защита ssh"
   local a
@@ -483,3 +487,10 @@ if [ -z "$CHECK_ONLY" ]; then
   fi
 fi
 echo "Повторная проверка: ./install.sh --check"
+if [ "${CHECK_RC:-0}" != 0 ] && [ -z "$CHECK_ONLY" ]; then
+  echo
+  echo "⚠ АВТОПРИЁМКА НАШЛА КРИТИЧНЫЕ ЗАМЕЧАНИЯ (см. отчёт выше). Памятка отправлена"
+  echo "  и защита ssh включены, но систему надо доделать: почините по отчёту,"
+  echo "  повторите нужный шаг (install.sh --from=<шаг>) и добейтесь зелёного --check."
+fi
+exit "${CHECK_RC:-0}"
