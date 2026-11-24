@@ -367,6 +367,15 @@ step_komodo() {
       --org-id cluster --domain "$DOMAIN" \
       --spec "komodo:$CONTROL:127.0.0.1:9120:http:9120:/" \
       --repair-ip "$(node_ip "$(node_names | head -1)")"
+    # Маршрут пишем САМИ (как для zabbix): Pangolin file_mode генерирует маршруты
+    # только для exit node с живой целью, и UI с остальных IP отдавал бы
+    # самоподписанный сертификат и 503. UI всегда ведём на Core по мешу.
+    for a in $(node_names); do
+      sed "s/__DOMAIN__/$DOMAIN/g; s|__CORE__|$(node_mesh "$CONTROL")|g" \
+        "$ROOT/deploy/komodo/traefik-local.yml" \
+        | nssh "$a" 'cat > /opt/pangolin/config/dynamic/komodo-local.yml'
+      ok "$a: HTTPS komodo.$DOMAIN → Core (mesh $(node_mesh "$CONTROL"):9120)"
+    done
     bash "$HERE/pangolin-resource-certs.sh" komodo
   fi
 }

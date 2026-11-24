@@ -8,46 +8,71 @@ source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 CHECK_PATH="/"
 if [[ "${1:-}" == --check-path=* ]]; then
   CHECK_PATH="${1#--check-path=}"
-  [[ "$CHECK_PATH" =~ ^/[a-zA-Z0-9_-]{1,80}$ ]] || fail "неверный путь проверки ресурса"
+  [[ "$CHECK_PATH" =~ ^/[a-zA-Z0-9_-]{0,80}$ ]] || fail "неверный путь проверки ресурса"
   shift
 fi
 [ "$#" -gt 0 ] || fail "укажите минимум один ресурс (например komodo)"
+
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+
+# Скрипт для ноды пишем ОТДЕЛЬНЫМ файлом и БЕЗ set -e: повторы и проверки решают
+# сами. Раньше блок шёл под set -e — первая же неудача certbot или curl убивала его
+# молча, не доходя до своих же повторов («попытка N» никогда не выполнялась).
+gen_node_script() {
+  cat > "$TMP/res-cert.sh" <<'EOS'
+#!/usr/bin/env bash
+HOST='@HOST@'; NAME='@NAME@'; DOMAIN='@DOMAIN@'; CHECK_PATH='@PATH@'
+set -u
+[ -f /root/.secrets/cloudflare.ini ] || { echo "  нет /root/.secrets/cloudflare.ini"; exit 1; }
+[ -d /opt/pangolin/config/dynamic ] || { echo "  нет /opt/pangolin/config/dynamic"; exit 1; }
+ok=""
+for try in 1 2 3; do
+  if certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini \
+       --dns-cloudflare-propagation-seconds 60 \
+       -d "$HOST" --non-interactive --agree-tos -m "admin@$DOMAIN" \
+       >"/tmp/certbot-$NAME.log" 2>&1 \
+     && [ -s "/etc/letsencrypt/live/$HOST/fullchain.pem" ]; then
+    ok=1; break
+  fi
+  echo "  попытка $try: сертификат не выдан, жду 30 с"
+  tail -2 "/tmp/certbot-$NAME.log" 2>/dev/null | sed 's/^/    /'
+  sleep 30
+done
+if [ -z "$ok" ]; then
+  echo "  certbot не справился за 3 попытки (лог: /tmp/certbot-$NAME.log)"
+  exit 1
+fi
+[ -s "/etc/letsencrypt/live/$HOST/privkey.pem" ] || { echo "  нет privkey.pem"; exit 1; }
+f="/opt/pangolin/config/dynamic/321r-resource-$NAME.yml"
+printf '%s\n' 'tls:' '  certificates:' \
+  "    - certFile: /etc/letsencrypt/live/$HOST/fullchain.pem" \
+  "      keyFile: /etc/letsencrypt/live/$HOST/privkey.pem" > "$f.tmp"
+mv -f "$f.tmp" "$f"
+for i in $(seq 1 36); do
+  curl -fsS -o /dev/null --max-time 12 --resolve "$HOST:443:127.0.0.1" "https://$HOST$CHECK_PATH" 2>/dev/null && break
+  sleep 5
+done
+if curl -fsS -o /dev/null --max-time 12 --resolve "$HOST:443:127.0.0.1" "https://$HOST$CHECK_PATH" 2>/dev/null; then
+  echo "сертификат $HOST выдан, traefik отдаёт доверенный TLS"
+else
+  echo "  traefik не отдаёт $HOST доверенный TLS: либо не подхватился сертификат,"
+  echo "  либо для имени нет маршрута (см. /opt/pangolin/config/dynamic/)"
+  exit 1
+fi
+EOS
+  sed -i "s/@HOST@/$1/g; s/@NAME@/$2/g; s/@DOMAIN@/$DOMAIN/g; s|@PATH@|$CHECK_PATH|g" "$TMP/res-cert.sh"
+}
 
 for name in "$@"; do
   [[ "$name" =~ ^[a-z][a-z0-9-]{0,30}$ ]] || fail "недопустимое имя ресурса: $name"
   host="$name.$DOMAIN"
   step "Ресурс $host: сертификат DNS-01 на каждой ноде"
+  gen_node_script "$host" "$name"
   pids=(); bad=0
   for a in $(node_names); do
     (
-      nssh "$a" "set -e
-        test -f /root/.secrets/cloudflare.ini
-        test -d /opt/pangolin/config/dynamic
-        ok=''
-        for try in 1 2 3; do
-          certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini \
-            --dns-cloudflare-propagation-seconds 60 \
-            -d '$host' --non-interactive --agree-tos -m 'admin@$DOMAIN' > /dev/null 2>&1
-          if test -s '/etc/letsencrypt/live/$host/fullchain.pem'; then ok=1; break; fi
-          echo \"  попытка \$try: сертификат не выдан, жду 30 с\"
-          sleep 30
-        done
-        test -n \"\$ok\"
-        test -s '/etc/letsencrypt/live/$host/fullchain.pem'
-        test -s '/etc/letsencrypt/live/$host/privkey.pem'
-        f='/opt/pangolin/config/dynamic/321r-resource-$name.yml'
-        printf '%s\\n' 'tls:' '  certificates:' \
-          '    - certFile: /etc/letsencrypt/live/$host/fullchain.pem' \
-          '      keyFile: /etc/letsencrypt/live/$host/privkey.pem' > \"\$f.tmp\"
-        mv -f \"\$f.tmp\" \"\$f\"
-        for i in \$(seq 1 36); do
-          curl -fsS -o /dev/null --max-time 12 \
-            --resolve '$host:443:127.0.0.1' 'https://$host$CHECK_PATH' 2>/dev/null && break
-          sleep 5
-        done
-        curl -fsS -o /dev/null --max-time 12 \
-          --resolve '$host:443:127.0.0.1' 'https://$host$CHECK_PATH' 2>/dev/null
-        echo 'сертификат $host выдан, traefik отдаёт доверенный TLS'"
+      ncp "$a" "$TMP/res-cert.sh" /tmp/res-cert.sh
+      nssh "$a" 'bash /tmp/res-cert.sh; rc=$?; rm -f /tmp/res-cert.sh; exit $rc'
     ) 2>&1 | sed "s/^/[$a] /" &
     pids+=($!)
   done

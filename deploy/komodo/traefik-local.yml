@@ -1,0 +1,18 @@
+# Локальный маршрут Komodo в обход Pangolin: UI всегда ведёт на Core напрямую
+# (по мешу, на control-ноду). Не полагаемся на генерацию маршрутов Pangolin
+# file_mode: она работает только для exit node с живой целью — с остальных IP
+# панель отдавала бы TRAEFIK DEFAULT CERT (альфа-тест; тот же приём, что
+# deploy/zabbix/traefik-local.yml).
+http:
+  routers:
+    komodo-local:
+      rule: "Host(`komodo.__DOMAIN__`)"
+      entryPoints: [websecure]
+      priority: 10000
+      tls: {}
+      service: komodo-local
+  services:
+    komodo-local:
+      loadBalancer:
+        servers:
+          - url: "http://__CORE__:9120"
