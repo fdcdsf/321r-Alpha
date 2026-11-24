@@ -82,9 +82,11 @@ cluster.sh apply           # разложить манифест по нодам
 
 # --- базы данных ---
 db-add.sh <app>                    # инстансы БД по реестру /etc/db/apps.d/<app>.yaml
-app-member.sh add <app> <нода>     # добавить инстанс (копия через VIP, ~1 мин)
+app-member.sh add <app> <нода>     # добавить инстанс (данные копируются сами)
 app-member.sh remove <app> <нода>  # убрать инстанс (первичный нельзя — сначала перенос)
-app-move.sh <app> <откуда> <куда>  # перенос инстанса (даунтайм ~10–20 с, только pg)
+app-move.sh <app> <откуда> <куда>  # перенос инстанса (даунтайм ~10–20 с; pg и mongo)
+mongo-rs.sh status <app>           # состав реплика-сети Mongo (add/remove/prio/stepdown)
+db-proxy-sync.sh <app>             # пересобрать блок прокси по реестру (на всех нодах)
 pg-rebuild-standby.sh [app]        # пересборка стендбая (~1 мин; app по умолчанию pangolin)
 
 # --- PG: роли и репликация ---

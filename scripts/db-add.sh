@@ -409,6 +409,31 @@ EOF
     sed -i "s/@APP@/${APP}/g" "$GEN/rs-wait.sh"
     scp "${SCPOPTS[@]}" "$GEN/rs-init.sh" "$GEN/rs-wait.sh" "root@${PRIMARY_IP}:/opt/db/"
     run_on "$PRIMARY" "chmod 700 /opt/db/rs-init.sh /opt/db/rs-wait.sh && /opt/db/rs-init.sh && /opt/db/rs-wait.sh"
+
+    # Состав сверяем с placement ВСЕГДА: повторный запуск с выросшим placement
+    # докладывает членов в rs — так же, как pg-ветка докладывает недостающие стендбаи.
+    WANT=""
+    for n in "${NODES[@]}"; do WANT+="{h:\"$(map_ip "$n"):${PORT}\",a:false},"; done
+    [ -n "$ARB" ] && WANT+="{h:\"$(map_ip "$ARB"):${PORT}\",a:true}"
+    cat > "$GEN/rs-sync.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+APP="@APP@"
+prim=$(docker exec mongod-@APP@ mongosh --quiet --eval 'try { print(rs.getPrimary()) } catch (e) { print("") }')
+if [ -z "$prim" ] || [ "$prim" = "null" ]; then echo "нет первичного — сверку состава пропускаю"; exit 0; fi
+docker exec mongod-@APP@ mongosh --quiet "mongodb://${prim}" --eval '
+var want = [@WANT@];
+var c = rs.conf();
+var have = c.members.map(function (m) { return m.host; });
+want.forEach(function (w) {
+  if (have.indexOf(w.h) >= 0) return;
+  try { rs.add(w.a ? { host: w.h, arbiterOnly: true } : { host: w.h, priority: 0 }); print("rs.add " + w.h) }
+  catch (e) { print("rs.add " + w.h + " err: " + e) }
+});'
+EOF
+    sed -i "s/@APP@/${APP}/g; s|@WANT@|${WANT%,}|g" "$GEN/rs-sync.sh"
+    scp "${SCPOPTS[@]}" "$GEN/rs-sync.sh" "root@${PRIMARY_IP}:/opt/db/"
+    run_on "$PRIMARY" "chmod 700 /opt/db/rs-sync.sh && /opt/db/rs-sync.sh"
   fi
 
   set_labels

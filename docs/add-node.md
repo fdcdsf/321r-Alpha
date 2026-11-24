@@ -67,7 +67,7 @@ echo 'd 10.66.0.4 d' >> /etc/db/nodes.map
 
 1. допишите её в `placement` записи `/etc/db/apps.d/<app>.yaml` (на всех нодах);
 2. запустите `bash /usr/local/bin/db-add.sh <app>` — PostgreSQL догонит узел сам (`pg_basebackup` от первичного);
-3. для Mongo расширение реплика-сети делается вручную (`rs.add`) — db-add инициализирует только новую сеть.
+3. для Mongo состав реплика-сети расширяется сам: `db-add` докладывает недостающих членов по `placement` (либо `app-member add <app> <узел>` — он сделает и `rs.add`, и правку реестра).
 
 `db-guard.timer` на новой ноде включает шаг `db` — проверьте: `systemctl is-active db-guard.timer`.
 

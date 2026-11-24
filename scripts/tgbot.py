@@ -645,7 +645,7 @@ def do_action(chat_id, action, msg_id=None):
         return
     if action.startswith("member-add:"):
         _, app, n = action.split(":", 2)
-        out = sh("/usr/local/bin/app-member.sh add %s %s 2>&1 | tail -7" % (shlex.quote(app), shlex.quote(n)), timeout=240)
+        out = sh("/usr/local/bin/app-member.sh add %s %s 2>&1 | tail -7" % (shlex.quote(app), shlex.quote(n)), timeout=1800)
         finish("➕ Инстанс «%s» → %s\n%s" % (app, n, out[:1600]))
         return
     if action.startswith("member-remove:"):
@@ -655,7 +655,7 @@ def do_action(chat_id, action, msg_id=None):
         return
     if action.startswith("move:"):
         _, app, f, to = action.split(":", 3)
-        out = sh("/usr/local/bin/app-move.sh %s %s %s 2>&1 | tail -9" % (shlex.quote(app), shlex.quote(f), shlex.quote(to)), timeout=300)
+        out = sh("/usr/local/bin/app-move.sh %s %s %s 2>&1 | tail -9" % (shlex.quote(app), shlex.quote(f), shlex.quote(to)), timeout=1800)
         finish("↔ Перенос «%s»: %s → %s\n%s" % (app, f, to, out[:1600]))
         return
     if action.startswith("warptoggle:"):

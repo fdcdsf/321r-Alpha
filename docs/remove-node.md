@@ -17,7 +17,7 @@ cat /etc/db/apps.d/*.yaml                       # placement каждого пр�
 docker node inspect <имя-в-swarm> --format '{{json .Spec.Labels}}'
 ```
 
-- Если уходящая нода входит в `placement` приложения — **сначала сузьте placement** (уберите узел из `/etc/db/apps.d/<app>.yaml` на всех нодах) и пересоберите группы: `bash /usr/local/bin/db-add.sh <app>`; для Mongo уберите члена реплика-сети вручную (`rs.remove`, см. [databases.md](databases.md)).
+- Если уходящая нода входит в `placement` приложения — **сначала уберите её инстанс**: `bash /usr/local/bin/app-member.sh remove <app> <узел>` сузит `placement`, остановит инстанс и обновит прокси (у Mongo ещё и уберёт члена из реплика-сети). Вручную — правка `/etc/db/apps.d/<app>.yaml` на всех нодах плюс `bash /usr/local/bin/db-add.sh <app>` (см. [databases.md](databases.md)).
 - Если на ноде живёт первичный — перенесите его заранее (`app-move.sh`) либо дождитесь, пока db-guard назначит нового (≤2 мин).
 - Практическое правило: **на уходящей ноде не должно остаться ни одной базы**. Данные старого инстанса можно удалить потом — спешить не нужно.
 
