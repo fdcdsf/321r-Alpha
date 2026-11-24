@@ -123,6 +123,21 @@ my_alias() { # какой алиас из инвентаря — ЭТОТ сер
   echo ""
 }
 
+backup_targets() { # $1=alias → две ноды-хранилища его копий (правило 3-2-1: каждая нода → 2 другие).
+  # Выбор детерминированный: следующие две по списку нод, с заворотом — работает при любом
+  # числе серверов ≥3 и сбалансированно распределяет хранилища (на тройке это просто «все чужие»).
+  local names=() n i
+  read -ra names <<< "$(node_names | tr '\n' ' ')"
+  n="${#names[@]}"
+  for ((i = 0; i < n; i++)); do
+    if [ "${names[$i]}" = "$1" ]; then
+      echo "${names[$(((i + 1) % n))]} ${names[$(((i + 2) % n))]}"
+      return 0
+    fi
+  done
+  return 1
+}
+
 gen_cluster_key() {
   mkdir -p "$SECRETS"; chmod 700 "$SECRETS"
   [ -f "$SECRETS/id_cluster" ] || ssh-keygen -t ed25519 -N "" -f "$SECRETS/id_cluster" -C "321r-cluster" >/dev/null

@@ -88,7 +88,12 @@ if [ "$rc" -le 1 ]; then log "configs: архив собран (rc=$rc)"; else E
 
 # --- 4) Снимки в два удалённых репозитория (2 другие ноды, ПО МЕШУ: mesh-IP из nodes.map) ---
 ok=0
-targets="$(awk -v me="$ME" '$1!=me{print $2}' /etc/db/nodes.map)"
+# Копии — на ДВУХ чужих нодах (правило 3-2-1): следующие две по списку нод, с заворотом.
+# Та же логика, что backup_targets() в install/lib.sh; на нодах источник — nodes.map.
+targets="$(awk -v me="$ME" '
+  { n++; ip[n]=$2; if ($1==me) i=n }
+  END { if (i) { print ip[(i % n) + 1]; print ip[((i + 1) % n) + 1] } }
+' /etc/db/nodes.map)"
 for ip in $targets; do
   repo="sftp:root@$ip:/var/lib/backup-repos/$ME"
   $NICE restic -r "$repo" snapshots >/dev/null 2>&1 || $NICE restic -r "$repo" init >/dev/null 2>&1 || { ERRS="$ERRS init->$ip"; continue; }

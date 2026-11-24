@@ -75,11 +75,10 @@ done
 echo "== 8. Бэкапы 3-2-1: репозитории на 2 чужих нодах =="
 for a in $(node_names); do
   cnt=0
-  for b in $(node_names); do
-    [ "$b" = "$a" ] && continue
+  for b in $(backup_targets "$a"); do
     nssh "$b" "[ -d /var/lib/backup-repos/$a ]" && cnt=$((cnt+1))
   done
-  [ "$cnt" -eq 2 ] && ok_c "$a: репозитории готовы (2 копии)" || fail_c "$a: репозиториев $cnt из 2"
+  [ "$cnt" -eq 2 ] && ok_c "$a: репозитории готовы (2 копии)" || fail_c "$a: репозиториев $cnt из 2 (цели: $(backup_targets "$a"))"
 done
 c="$(nssh "$(node_names | head -1)" 'test -f /var/lib/pgbackup/last_ok && echo есть || echo нет')"
 [ "$c" = "есть" ] && ok_c "первый прогон бэкапа уже был" || warn_c "снимков ещё нет — появятся по окну (ночью) или командой backup-321r.sh"

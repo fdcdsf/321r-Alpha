@@ -30,11 +30,12 @@ else
   warn "нет TG_BOT_TOKEN — алерты и бот работать не будут (добавьте в inventory и перезапустите шаг)"
 fi
 
-# 3) репозитории: своя копия живёт на 2 других нодах (sftp по мешу) — все пары параллельно
+# 3) репозитории: своя копия живёт на 2 других нодах (sftp по мешу) — все пары параллельно.
+# Выбор целей — backup_targets(): следующие две по списку (на тройке = «все чужие»,
+# на кластере любого размера — ровно 2 копии, как и требует правило 3-2-1).
 pids=(); bad=0
 for a in $(node_names); do
-  for b in $(node_names); do
-    [ "$b" = "$a" ] && continue
+  for b in $(backup_targets "$a"); do
     (
       nssh "$a" "set -a; . /etc/db/secrets/restic.env; set +a
         restic -r sftp:root@$(node_mesh "$b"):/var/lib/backup-repos/$a snapshots >/dev/null 2>&1 \
