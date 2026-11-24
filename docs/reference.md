@@ -46,7 +46,7 @@ mesh). 2099 — API remnanode (от 172.16.0.0/12). Метрики панели 
 | Лог установки | `/var/log/321r-install.log` |
 | Лог авто-продолжения после ребута | `/var/log/321r-install-resume.log` |
 | Памятка владельца | `/root/321r-pamyatka-*.txt` (права 600) |
-| Скрипты на нодах | `/usr/local/bin/` (db-guard, ddns, backup-321r, unhealthy-restart, pg-rebuild-standby, mongo-rs, app-move, app-member, db-proxy-sync и др.) |
+| Скрипты на нодах | `/usr/local/bin/` (321r-doctor, db-guard, ddns, backup-321r, unhealthy-restart, pg-rebuild-standby, mongo-rs, app-move, app-member, db-proxy-sync и др.) |
 | Конфиг меша + HeaderProtectionKey | `/etc/amnezia/amneziawg/wg0.conf` (HPK — секрет кластера) |
 | Ключи WG | `/etc/wireguard/privatekey`, `/etc/wireguard/publickey` |
 | Стек Pangolin | `/opt/pangolin/` (pangolin + gerbil + traefik) |

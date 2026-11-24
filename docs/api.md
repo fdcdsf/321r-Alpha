@@ -87,6 +87,7 @@ app-member.sh remove <app> <нода>  # убрать инстанс (перви
 app-move.sh <app> <откуда> <куда>  # перенос инстанса (даунтайм ~10–20 с; pg и mongo)
 mongo-rs.sh status <app>           # состав реплика-сети Mongo (add/remove/prio/stepdown)
 db-proxy-sync.sh <app>             # пересобрать блок прокси по реестру (на всех нодах)
+321r-doctor.sh                     # диагностика кластера одним файлом (без секретов)
 pg-rebuild-standby.sh [app]        # пересборка стендбая (~1 мин; app по умолчанию pangolin)
 
 # --- PG: роли и репликация ---
