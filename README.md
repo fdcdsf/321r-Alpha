@@ -69,6 +69,13 @@ cd /opt/321r && bash install/install.sh --check
 /usr/local/bin/321r-doctor.sh
 ```
 
+Отказоустойчивость проверяется учениями — большинство из них прогоняются сами:
+
+```bash
+/usr/local/bin/321r-drills.sh list          # каталог дриллов и нормы
+/usr/local/bin/321r-drills.sh run all --yes # прогон обычных дриллов
+```
+
 ## Документация
 
 | Задача | Документ |

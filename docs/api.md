@@ -88,6 +88,7 @@ app-move.sh <app> <откуда> <куда>  # перенос инстанса (
 mongo-rs.sh status <app>           # состав реплика-сети Mongo (add/remove/prio/stepdown)
 db-proxy-sync.sh <app>             # пересобрать блок прокси по реестру (на всех нодах)
 321r-doctor.sh                     # диагностика кластера одним файлом (без секретов)
+321r-drills.sh run all --yes       # автопрогон дриллов (каталог: 321r-drills.sh list)
 pg-rebuild-standby.sh [app]        # пересборка стендбая (~1 мин; app по умолчанию pangolin)
 
 # --- PG: роли и репликация ---
