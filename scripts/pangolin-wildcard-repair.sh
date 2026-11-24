@@ -34,6 +34,19 @@ UPDATE certificates
  WHERE "wildcard" = true AND "domain" LIKE '*.%';
 SQL
 
+echo "2б. certificates: сбрасываем зависший failed"
+# Домен мог быть уже исправлен (без «*.»), а строка остаться в status=failed: повторная
+# выдача блокируется, монитор сертификатов считает домен «покрытым» («All domains are
+# covered, no fetch needed») — и ресурсы навсегда отвечают 404 с TRAEFIK DEFAULT CERT
+# (вскрыто альфа-тестом: сброса в pending достаточно, выдача проходит за минуту).
+"${PSQL[@]}" <<'SQL'
+UPDATE certificates
+   SET "status" = 'pending',
+       "errorMessage" = NULL,
+       "updatedAt" = floor(extract(epoch from now()))::integer
+ WHERE "wildcard" = true AND "status" = 'failed';
+SQL
+
 echo "3. domains: снимаем failed/tries (валидатор снова возьмёт домены в работу)"
 "${PSQL[@]}" <<'SQL'
 UPDATE domains SET "failed" = false, "tries" = 0 WHERE "failed" = true;

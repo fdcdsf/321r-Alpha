@@ -55,8 +55,10 @@ done
 if curl -fsS -o /dev/null --max-time 12 --resolve "$HOST:443:127.0.0.1" "https://$HOST$CHECK_PATH" 2>/dev/null; then
   echo "сертификат $HOST выдан, traefik отдаёт доверенный TLS"
 else
-  echo "  traefik не отдаёт $HOST доверенный TLS: либо не подхватился сертификат,"
-  echo "  либо для имени нет маршрута (см. /opt/pangolin/config/dynamic/)"
+  echo "  $HOST: нет доверенного TLS. Причины по частоте: (1) не выдан wildcard-сертификат"
+  echo "  Pangolin для ресурсов — см. pangolin-wildcard-repair.sh и status в таблице certificates;"
+  echo "  (2) нет маршрута для имени (см. /opt/pangolin/config/dynamic/);"
+  echo "  (3) не подхватился файловый сертификат (логи traefik)."
   exit 1
 fi
 EOS
