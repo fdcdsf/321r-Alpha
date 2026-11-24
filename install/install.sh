@@ -334,16 +334,24 @@ step_pangolin() {
     for a in $(node_names); do sites+=(--node "$a"); done
     python3 "$ROOT/scripts/pangolin-sites.py" "${sites[@]}"
     bash "$HERE/pangolin-agents.sh"
-    python3 "$ROOT/scripts/pangolin-sites.py" "${sites[@]}" --status
-    # Newt мог стартовать раньше готовности Pangolin и остаться офлайн: процесс
-    # жив (websocket поднят), но туннель не установлен и сам он не восстанавливается
-    # (). Переподнимаем агентов и перепроверяем.
-    for a in $(node_names); do
-      nssh "$a" 'systemctl restart 321r-newt.service >/dev/null 2>&1 || true' &
+    # Судим по ПОВТОРНОЙ проверке, а не по первой: Newt стартует ~6 с, и при первом
+    # осмотре последняя нода ещё подключается — ложное OFFLINE обрывало шаг (set -e),
+    # а восстановительный блок ниже никогда не выполнялся (альфа-тест).
+    if ! python3 "$ROOT/scripts/pangolin-sites.py" "${sites[@]}" --status; then
+      # Newt мог стартовать раньше готовности Pangolin и остаться офлайн: процесс
+      # жив (websocket поднят), но туннель не установлен и сам он не восстанавливается
+      # (). Переподнимаем агентов и перепроверяем.
+      for a in $(node_names); do
+        nssh "$a" 'systemctl restart 321r-newt.service >/dev/null 2>&1 || true' &
+      done
+      wait
+    fi
+    ok=""
+    for _ in $(seq 1 6); do
+      sleep 10
+      if python3 "$ROOT/scripts/pangolin-sites.py" "${sites[@]}" --status; then ok=1; break; fi
     done
-    wait
-    sleep 20
-    python3 "$ROOT/scripts/pangolin-sites.py" "${sites[@]}" --status
+    [ -n "$ok" ] || fail "сайты Newt не все online — смотрите journalctl -u 321r-newt на ноде и /etc/newt/newt.env"
     if [ "${REMNAWAVE_MODE:-install}" = connect ]; then
       python3 "$ROOT/scripts/pangolin-sites.py" --url "https://pangolin.$DOMAIN" \
         --org-id cluster --node home
