@@ -117,6 +117,27 @@ ssh root@<mesh-IP-донора> 'docker save <образ> | gzip -1' | ssh root@
 и обрезает поток («gzip: unexpected end of file»). Установщик качает образ только когда его
 нет локально, поэтому после переноса повторный запуск шага проходит мгновенно.
 
+## Zabbix
+
+### Сброс пароля Admin
+
+Zabbix 7.0 хранит пароли bcrypt — привычный `md5('...')` через SQL не работает, а после серии
+неудачных входов аккаунт временно блокируется («Incorrect user name or password or account is
+temporarily blocked»). Лечится так (запускать на ноде, где работает `pg-zabbix`):
+
+```bash
+. /etc/db/secrets/zabbix.env
+apt-get install -y -qq python3-bcrypt
+HASH=$(python3 -c "import bcrypt;print(bcrypt.hashpw(b'zabbix', bcrypt.gensalt(rounds=10)).decode())")
+docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" pg-zabbix \
+  psql -X -h 10.66.0.99 -p 5434 -U postgres -d zabbix \
+  -c "UPDATE users SET passwd='$HASH', attempt_failed=0, attempt_clock=0 WHERE username='Admin'"
+rm -f /etc/db/secrets/zabbix-admin.json   # хранит прежний пароль — устарел
+```
+
+После этого повторный запуск шага `zabbix` сам заведёт нового админа со случайным паролем
+и сохранит его только в `/etc/db/secrets/zabbix-admin.json` (файл живёт на control-ноде).
+
 ## Базы данных
 
 ### «read-only transaction» при записи в PG

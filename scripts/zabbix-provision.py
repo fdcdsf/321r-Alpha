@@ -30,7 +30,10 @@ class Api:
     def call(self, method, params):
         self.counter += 1
         headers = {'Content-Type': 'application/json-rpc'}
-        if self.token:
+        # user.login обязан идти БЕЗ заголовка авторизации: Zabbix отвечает
+        # «Invalid params: must be called without authorization header» (вскрыто
+        # альфа-тестом: повторный вход после смены пароля нёс старый токен).
+        if self.token and method != 'user.login':
             headers['Authorization'] = 'Bearer ' + self.token
         body = json.dumps({'jsonrpc': '2.0', 'method': method, 'params': params,
                            'id': self.counter}).encode()
