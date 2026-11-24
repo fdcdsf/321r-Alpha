@@ -16,11 +16,17 @@ rw = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rw)
 
 
-def run(args, **kwargs):
+def run(args, timeout=300, **kwargs):
     try:
-        return subprocess.run(args, capture_output=True, timeout=90, check=True, **kwargs)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        raise rw.Failure("не удалось разложить/запустить VPN-ноду по SSH") from None
+        return subprocess.run(args, capture_output=True, timeout=timeout, check=True, **kwargs)
+    except subprocess.CalledProcessError as e:
+        tail = (e.stderr or e.stdout or b"").decode(errors="replace").strip().splitlines()[-3:]
+        raise rw.Failure(
+            "команда на ноде не прошла: " + str(args[-1])[:90]
+            + (" | " + " / ".join(tail) if tail else "")
+        ) from e
+    except subprocess.TimeoutExpired:
+        raise rw.Failure(f"команда на ноде зависла (>{timeout} с): {str(args[-1])[:90]}") from None
 
 
 def provision(api, nodes, ssh_key, compose):
@@ -50,7 +56,7 @@ def provision(api, nodes, ssh_key, compose):
         put = ["ssh", "-i", ssh_key, "-p", "2222", "-o", "BatchMode=yes",
                "root@" + ip, "umask 077; cat > /opt/remnanode/.env && chmod 600 /opt/remnanode/.env"]
         run(put, input=Path(env_file).read_bytes())
-        run(ssh + ["cd /opt/remnanode && docker compose up -d >/dev/null 2>&1"])
+        run(ssh + ["cd /opt/remnanode && (docker compose up -d || { docker rm -f remnanode >/dev/null 2>&1; docker compose up -d; })"], timeout=600)
         run(ssh + ["docker ps --format '{{.Names}}' | grep -qx remnanode"])
         print(f"Remnawave: {name} запущена на {alias}")
         if name not in known:
