@@ -49,6 +49,12 @@ for pid in "${pids[@]}"; do wait "$pid" || bad=1; done
 for a in $(node_names); do ok "$a: репозитории на 2 чужих нодах инициализированы"; done
 
 # 4) cron: окно бэкапа своё у каждой ноды (не копимся одновременно), остальное общее
+# Свой скрипт раскладываем ЗДЕСЬ (как делают все прочие шаги): правки шага доехали бы
+# до нод только через шаг base, и ноды продолжали работать старой версией (альфа-тест).
+for a in $(node_names); do
+  ncp "$a" "$ROOT/scripts/backup-321r.sh" /usr/local/bin/backup-321r.sh
+  nssh "$a" 'chmod 755 /usr/local/bin/backup-321r.sh'
+done
 for a in $(node_names); do
   if nssh "$a" 'crontab -l 2>/dev/null | grep -q backup-321r'; then
     warn "$a: backup-321r уже есть в crontab-е root — уберите оттуда, иначе задания будут дважды"
