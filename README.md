@@ -41,6 +41,13 @@
 curl -fsSL https://raw.githubusercontent.com/fdcdsf/321r-Alpha/master/install/bootstrap.sh | bash
 ```
 
+Если `curl` не установлен (свежая Debian), либо поставьте его
+(`apt-get update && apt-get install -y curl`), либо запустите через wget:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/fdcdsf/321r-Alpha/master/install/bootstrap.sh | bash
+```
+
 Мастер спросит количество серверов, их имена и адреса, токен Telegram-бота, домен,
 Cloudflare-токен, режим Remnawave, профиль ресурсов и нужен ли Zabbix. Остальное
 установщик сделает сам: подготовит все серверы, соберёт меш и Swarm, поднимет базы,

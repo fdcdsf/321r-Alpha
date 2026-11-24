@@ -12,6 +12,9 @@
 curl -fsSL https://raw.githubusercontent.com/fdcdsf/321r-Alpha/master/install/bootstrap.sh | bash
 ```
 
+Нет `curl` (свежая Debian)? `apt-get update && apt-get install -y curl`
+или wget-вариант: `wget -qO- https://raw.githubusercontent.com/fdcdsf/321r-Alpha/master/install/bootstrap.sh | bash`.
+
 Установщик скачивает репозиторий в `/opt/321r`, запускает мастер и ведёт все серверы
 через шаги. Каждый шаг идемпотентен: проверяет, сделано ли уже, делает работу, оставляет
 проверяемый след; при сбое останавливается с понятным сообщением «что сломалось и как

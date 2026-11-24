@@ -24,6 +24,13 @@
 curl -fsSL https://raw.githubusercontent.com/fdcdsf/321r-Alpha/master/install/bootstrap.sh | bash
 ```
 
+Нет `curl` (свежая Debian)? Тогда `apt-get update && apt-get install -y curl`
+либо wget-вариант:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/fdcdsf/321r-Alpha/master/install/bootstrap.sh | bash
+```
+
 Это всё. Мастер-установщик спросит остальное и поставит систему **на все серверы
 одновременно**. Подробный разбор вопросов мастера — в [deploy.md](deploy.md).
 
