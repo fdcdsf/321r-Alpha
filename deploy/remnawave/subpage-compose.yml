@@ -1,5 +1,5 @@
 # Subscription Page (docs.rw/install/subscription-page/bundled) — адаптация 321r:
-# Доступ через ресурс Pangolin sub.321r.ru (cluster-b -> 127.0.0.1:3010).
+# доступ через ресурс Pangolin sub.321r.ru (cluster-b -> 127.0.0.1:3010).
 services:
   remnawave-subscription-page:
     image: remnawave/subscription-page:latest

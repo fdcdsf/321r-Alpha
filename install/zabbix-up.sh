@@ -67,7 +67,7 @@ for a in $(node_names); do
 done
 
 # С чистой БД образ импортирует схему — запускать ОДИН server, чтобы не
-# Повторить гонку миграций Pangolin. Резервный запускать позже.
+# повторить гонку миграций Pangolin. Резервный запускать позже.
 nssh "$CONTROL_NODE" 'cd /opt/zabbix && docker compose up -d server' >/dev/null
 ready=""
 for i in $(seq 1 90); do
@@ -111,7 +111,7 @@ hosts=()
 for a in $(node_names); do hosts+=(--node "$a:$(node_mesh "$a")"); done
 nssh "$CONTROL_NODE" "python3 /opt/zabbix/zabbix-provision.py --control $CONTROL_NODE $(printf '%q ' "${hosts[@]}")"
 # Файлы админа/бота раскладываем по всем нодам: приёмку и отладку можно вести
-# С ЛЮБОЙ живой VPS, а не только с control (иначе после падения control — тупик).
+# с ЛЮБОЙ живой VPS, а не только с control (иначе после падения control — тупик).
 for a in $(node_names); do
   for f in zabbix-admin.json zabbix-bot-pass.json; do
     if [ "$a" != "$CONTROL_NODE" ] && nssh "$CONTROL_NODE" "[ -s /etc/db/secrets/$f ]"; then

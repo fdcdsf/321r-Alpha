@@ -7,7 +7,7 @@ umask 022
 
 ALIAS="${1:?имя ноды}"; MESH_IP="${2:?mesh-ip}"; VIP="${3:-10.66.0.99}"; PROFILE="${4:-L}"
 # Чей IP нельзя банить: инициатор установки + все ноды (ходят друг к другу по
-# Публичным адресам). Запятая-список, передаётся пятым аргументом.
+# публичным адресам). Запятая-список, передаётся пятым аргументом.
 IGNORE_IPS="${5:-}"
 
 echo "== $ALIAS: базовая подготовка ($MESH_IP, профиль $PROFILE) =="
@@ -33,14 +33,14 @@ fi
 # --- 2) пакеты и Docker ---
 export DEBIAN_FRONTEND=noninteractive
 # Свежая Ubuntu при первом старте держит dpkg-лок (unattended-upgrades) — ждём и
-# Ретраим (иначе «Could not get lock /var/lib/dpkg/lock-frontend»).
+# ретраим (иначе «Could not get lock /var/lib/dpkg/lock-frontend»).
 for i in $(seq 1 60); do pgrep -x unattended-upgr >/dev/null 2>&1 || break; sleep 10; done
 apt_retry() { local n; for n in $(seq 1 10); do "$@" && return 0; echo "  apt занят — жду 15 с (попытка $n)"; sleep 15; done; return 1; }
 APTQ="apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10"
 apt_retry $APTQ update -qq
 # Пакеты ядра — ОТДЕЛЬНО от основного списка (): если заголовков
-# Для ЗАПУЩЕННОГО ядра нет в репо (Debian вычищает старые версии), одна
-# Недоступная позиция не должна отменять установку curl/docker и всего остального.
+# для ЗАПУЩЕННОГО ядра нет в репо (Debian вычищает старые версии), одна
+# недоступная позиция не должна отменять установку curl/docker и всего остального.
 apt_retry $APTQ install -y -qq ca-certificates curl gnupg git jq python3 ufw \
   dkms tar gzip util-linux restic >/dev/null
 if apt_retry $APTQ install -y -qq "linux-headers-$(uname -r)" >/dev/null 2>&1; then
@@ -101,7 +101,7 @@ grep -q '^Port 2222' "$SSHD" || echo 'Port 2222' >> "$SSHD"
 grep -q '^Port 22$' "$SSHD" || echo 'Port 22' >> "$SSHD"    # временно, пока ключевой вход не подтверждён
 grep -q '^MaxAuthTries' "$SSHD" && sed -i 's/^MaxAuthTries .*/MaxAuthTries 3/' "$SSHD" || echo 'MaxAuthTries 3' >> "$SSHD"
 # Ubuntu 24.04+: sshd может быть socket-активирован (ssh.socket держит только :22),
-# Тогда Port из конфига ИГНОРИРУЕТСЯ (2222 «не слушался», db-add падал).
+# тогда Port из конфига ИГНОРИРУЕТСЯ (2222 «не слушался», db-add падал).
 # Переходим на классический sshd.service — порты берутся из sshd_config.
 if systemctl is-active ssh.socket >/dev/null 2>&1 || systemctl is-enabled ssh.socket >/dev/null 2>&1; then
   systemctl disable --now ssh.socket >/dev/null 2>&1 || true
@@ -146,8 +146,8 @@ ufw --force enable >/dev/null
 
 # --- 7) fail2ban ---
 # НЕ банить во время установки (fail2ban убивал сессию админа
-# Посреди шага, apt оставался полусобранным, повтор глох). Jail sshd выключен
-# До шага harden — защиту включаем, когда всё уже стоит.
+# посреди шага, apt оставался полусобранным, повтор глох). Jail sshd выключен
+# до шага harden — защиту включаем, когда всё уже стоит.
 install -d -m 755 /etc/fail2ban/jail.d
 IGNORE_LIST="127.0.0.1/8 10.66.0.0/24"
 OLDIFS="$IFS"; IFS=','

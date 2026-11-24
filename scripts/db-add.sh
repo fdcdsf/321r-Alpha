@@ -2,8 +2,8 @@
 # db-add.sh — поднимает слой БД приложения по реестру (docs/databases.md).
 # Запуск: на bootstrap-ноде (b, менеджер):   bash /root/db-add.sh pangolin
 # Реестр /etc/db/apps.d/<app>.yaml клонируется db-add на ВСЕ ноды — их db-guard читает
-# Его для голосов даже вне S(X). Секреты генерируются на узлах (umask 077) — в чат и
-# В гит не попадают.
+# его для голосов даже вне S(X). Секреты генерируются на узлах (umask 077) — в чат и
+# в гит не попадают.
 #
 # engine=pg    : инстанс на каждом узле S(X); на первичном initdb + роли/база приложения
 #                + pg_hba для mesh; на стендбаях pg_basebackup -R; метки; haproxy на VIP.
@@ -16,7 +16,7 @@ umask 077
 APP="${1:?usage: db-add.sh <app>}"
 REG="/etc/db/apps.d/${APP}.yaml"
 SSHOPTS=(-p 2222 -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5)
-# У scp порт — заглавный -P (у ssh -p): отдельный массив, иначе scp примет 2222 за файл
+# у scp порт — заглавный -P (у ssh -p): отдельный массив, иначе scp примет 2222 за файл
 SCPOPTS=(-P 2222 -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5)
 GEN="$(mktemp -d)"; trap 'rm -rf "$GEN"' EXIT
 
@@ -110,7 +110,7 @@ q "SELECT 1 FROM pg_database WHERE datname='@APP@'" | grep -q '^1$' || \
 # JIT гасим: сложные запросы панелей с JIT на слабых нодах деградируют в 10+ секунд
 # (план с битой статистикой + JIT = таймауты 57014 и пустые списки UI)
 q "ALTER DATABASE @APP@ SET jit = off"
-# Скрипт бежит на хосте: hba-файл лежит в хост-каталоге тома (там смонтирован PGDATA)
+# скрипт бежит на хосте: hba-файл лежит в хост-каталоге тома (там смонтирован PGDATA)
 HBA=/var/lib/dbdata/pg-@APP@/pg_hba.conf
 grep -q '10.66.0.0/24' "$HBA" || cat >> "$HBA" <<'HBA'
 host    all             all             10.66.0.0/24            scram-sha-256

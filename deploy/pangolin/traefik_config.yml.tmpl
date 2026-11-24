@@ -4,7 +4,7 @@
 # multi-A DNS; в гайде — внешний LB). Сертификат дашборда — ФАЙЛОВЫЙ (certbot →
 # dynamic/panel_cert.yml), а НЕ ACME traefik: NS-делегирование _acme-challenge.<домен> →
 # dns.<домен> (оно нужно для wildcard Pangolin) уводит DNS-01 проверку от Cloudflare к
-# Нашей DNS, где нет TXT, который traefik записал через API → TRAEFIK DEFAULT CERT
+# нашей DNS, где нет TXT, который traefik записал через API → TRAEFIK DEFAULT CERT
 #. Резолвер letsencrypt оставлен: его имя ждёт config.yml Pangolin.
 providers:
   file:

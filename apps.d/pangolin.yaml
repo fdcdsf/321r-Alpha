@@ -1,5 +1,5 @@
 # Реестр приложения (docs/databases.md). Декларация без секретов:
-# Пароли генерируются на нодах в /etc/db/secrets/ (umask 077) — в гит не попадают.
+# пароли генерируются на нодах в /etc/db/secrets/ (umask 077) — в гит не попадают.
 name: pangolin
 engine: pg              # pg | mongo
 class: cluster          # cluster | local (БД живёт только на своей ноде, без репликации)

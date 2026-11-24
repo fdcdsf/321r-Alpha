@@ -1,5 +1,5 @@
 # Реестр приложения (docs/databases.md). Декларация без секретов:
-# У Mongo авторизации нет — инстансы слышны только в mesh (ufw + DOCKER-USER).
+# у Mongo авторизации нет — инстансы слышны только в mesh (ufw + DOCKER-USER).
 name: komodo
 engine: mongo            # pg | mongo
 class: cluster           # cluster | local (БД живёт только на своей ноде, без репликации)

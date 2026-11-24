@@ -6,29 +6,29 @@ MODE="${1:-alert}"
 ME="$(awk -v s="$(hostname)" '$3==s{print $1}' /etc/db/nodes.map)"; ME="${ME:-$(hostname | cut -d. -f1)}"
 prob=""
 
-# Диск: корень и каталоги данных
+# диск: корень и каталоги данных
 for d in / /var/lib/dbdata /var/lib/backup-repos; do
   [ -d "$d" ] || continue
   u="$(df -h "$d" | awk 'NR==2{gsub("%","");print $5}')"
   [ "${u:-0}" -ge 85 ] 2>/dev/null && prob="$prob; диск $d занят на ${u}%"
 done
 
-# Память
+# память
 free_mb="$(free -m | awk '/Mem:/{print $7}')"
 [ "${free_mb:-999}" -le 100 ] 2>/dev/null && prob="$prob; RAM свободно всего ${free_mb}MB"
 
-# Нагрузка: 5-мин > 2×ядер
+# нагрузка: 5-мин > 2×ядер
 l5="$(cut -d' ' -f2 /proc/loadavg)"; n="$(nproc)"
 echo "$l5 $n" | awk '{exit !($1 > $2*2)}' && prob="$prob; load $l5 при ${n} ядрах"
 
-# Сертификаты маски: < 14 дней
+# сертификаты маски: < 14 дней
 exp="$(certbot certificates 2>/dev/null | grep 'Expiry Date' | head -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)"
 if [ -n "$exp" ]; then
   days=$(( ($(date -d "$exp" +%s 2>/dev/null || echo 0) - $(date +%s)) / 86400 ))
   [ "$days" -le 14 ] 2>/dev/null && prob="$prob; сертификат маски истекает через ${days} дн"
 fi
 
-# Бэкап
+# бэкап
 if [ ! -f /var/lib/pgbackup/last_ok ]; then
   prob="$prob; бэкапа НИКОГДА не было"
 else
@@ -36,7 +36,7 @@ else
   [ "$age" -ge 26 ] && prob="$prob; бэкап ${age}ч назад (протух!)"
 fi
 
-# Верификация восстановления
+# верификация восстановления
 if [ -f /var/lib/pgbackup/last_verify ]; then
   age=$(( ($(date +%s) - $(stat -c %Y /var/lib/pgbackup/last_verify)) / 86400 ))
   [ "$age" -ge 8 ] && prob="$prob; верификация восстановления ${age}д назад"

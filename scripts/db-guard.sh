@@ -185,7 +185,7 @@ else
     touch "$STATE_DIR/fenced"
   fi
 fi
-# Без кворума решений не принимаем (CP): дальше — только при живом кворуме.
+# без кворума решений не принимаем (CP): дальше — только при живом кворуме.
 # Исключения: survival_tick (политика аварийного режима) и --survival-now (ручной подъём).
 if [ "$QUORUM_OK" = 0 ]; then
   [ "${1:-}" = "--survival-now" ] || { survival_tick; exit 0; }
@@ -429,12 +429,12 @@ mongo_stepdown() {
 }
 
 # ======================================================================
-# Перенос метки первичного (для app-move): db-guard.sh --claim-now <app> <node>
+# перенос метки первичного (для app-move): db-guard.sh --claim-now <app> <node>
 if [ "${1:-}" = "--claim-now" ]; then
   claim "$2" "$3"
   exit $?
 fi
-# Ручной аварийный подъём: db-guard.sh --survival-now (бот /survival или survival.sh)
+# ручной аварийный подъём: db-guard.sh --survival-now (бот /survival или survival.sh)
 if [ "${1:-}" = "--survival-now" ]; then
   survival_on
   exit 0

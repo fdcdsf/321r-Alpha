@@ -32,9 +32,9 @@ SS_FILE="$SECRETS/pangolin-server-secret"
 SS="$(cat "$SS_FILE")"
 # APP_PASSWORD db-add создаёт ТОЛЬКО на первичной ноде, а Pangolin рендерит
 # config.yml на ВСЕХ нодах (на нодах вне placement пароля не
-# Было -> connection_string оставался пустым, Pangolin падал с
+# было -> connection_string оставался пустым, Pangolin падал с
 # «SASL: client password must be a string»). Собираем пароль с любой ноды,
-# Где он есть, и раздаём всем.
+# где он есть, и раздаём всем.
 APP_PASS=""
 for a in $(node_names); do
   APP_PASS="$(nssh "$a" "grep '^APP_PASSWORD=' /etc/db/secrets/pangolin.env 2>/dev/null | cut -d= -f2- | tr -d '\"'" || true)"
@@ -56,9 +56,9 @@ done
 step "Сертификат дашборда (certbot DNS-01 → файл для traefik)"
 # Собственный ACME traefik с dnsChallenge в Cloudflare здесь НЕ работает —
 # NS _acme-challenge.<домен> делегирован встроенной DNS Pangolin (это нужно для wildcard),
-# Проверка уходит туда, где нет TXT, записанного traefik через API → TRAEFIK DEFAULT CERT
+# проверка уходит туда, где нет TXT, записанного traefik через API → TRAEFIK DEFAULT CERT
 # (браузер блокирует панель). certbot — путь, уже доказанный масками VPN. Идемпотентно:
-# Сертификат есть и не просрочен — certbot ничего не перезапрашивает.
+# сертификат есть и не просрочен — certbot ничего не перезапрашивает.
 for a in $(node_names); do
   nssh "$a" 'command -v certbot >/dev/null 2>&1 || {
     for i in $(seq 1 30); do pgrep -x unattended-upgr >/dev/null 2>&1 || break; sleep 5; done
@@ -132,7 +132,7 @@ for pid in "${pids[@]}"; do wait "$pid" || bad=1; done
 [ "$bad" = 0 ] || fail "конфиги Pangolin разложены не на все ноды — смотрите вывод"
 
 # На чистой БД: если все три контейнера стартуют
-# Одновременно, каждый запускает drizzle migrations.mjs. В общей БД гонка
+# одновременно, каждый запускает drizzle migrations.mjs. В общей БД гонка
 # CREATE TABLE / versionMigrations → два контейнера становятся unhealthy.
 # Один мигрирует и полностью запускает API, только потом стартуют остальные.
 wait_pangolin() {
@@ -149,14 +149,14 @@ FIRST="$(node_names | head -1)"
 step "Миграции Pangolin — только $FIRST"
 nssh "$FIRST" 'cd /opt/pangolin && docker compose up -d pangolin' >/dev/null
 # Повторный запуск после неудачной параллельной миграции: compose не ретраит
-# Уже созданный unhealthy-контейнер. Перезапускаем ТОЛЬКО панель, не gerbil.
+# уже созданный unhealthy-контейнер. Перезапускаем ТОЛЬКО панель, не gerbil.
 st="$(nssh "$FIRST" 'docker inspect -f "{{.State.Health.Status}}" pangolin 2>/dev/null' || true)"
 [ "$st" != unhealthy ] || nssh "$FIRST" 'docker restart pangolin >/dev/null'
 wait_pangolin "$FIRST"
 
 step "Pangolin на остальных нодах (схема БД уже готова)"
 # Ноды готовим ПАРАЛЛЕЛЬНО: у каждой своя докачка образа, а их может быть
-# Сколько угодно — последовательный цикл превращает установку в ползание
+# сколько угодно — последовательный цикл превращает установку в ползание
 # (5 серверов, образы тянулись по очереди).
 pids=(); bad=0
 for a in $(node_names); do
@@ -185,7 +185,7 @@ for pid in "${pids[@]}"; do wait "$pid" || bad=1; done
 
 step "Восстановление TCP-масок после переустановки Pangolin"
 # Маски лежат в dynamic/ Pangolin. После чистого переустановления каталог
-# Пустой — браузер панели работает, а mtproto/VPN на :443 незаметно пропадают.
+# пустой — браузер панели работает, а mtproto/VPN на :443 незаметно пропадают.
 # Gateway сети Docker на каждой ноде свой (например, c=172.21.0.1, а не 172.22.0.1).
 if [ -f "$ROOT/deploy/remnawave/mask_config.yml" ]; then
   for a in $(node_names); do
@@ -213,7 +213,7 @@ for pid in "${pids[@]}"; do wait "$pid" || true; done
 
 step "Второй проход: gerbil/traefik после оздоровления панели"
 # compose с depends_on: service_healthy НЕ ретраит: если healthcheck на момент
-# Первого up ещё не прошёл — gerbil/traefik не стартуют никогда. Сначала ждём панель.
+# первого up ещё не прошёл — gerbil/traefik не стартуют никогда. Сначала ждём панель.
 # Ждём ВСЕ ноды одновременно: по очереди это до 3 минут на каждую.
 pids=(); bad=0
 for a in $(node_names); do
@@ -248,7 +248,7 @@ done
 
 step "Сертификат дашборда: что реально отдаёт traefik"
 # Без этой проверки панель «работала» с TRAEFIK DEFAULT CERT, и это видел
-# Только человек в браузере. Машинно ловим именно дефолтный серт.
+# только человек в браузере. Машинно ловим именно дефолтный серт.
 sleep 5
 for a in $(node_names); do
   iss="$(nssh "$a" "echo | timeout 8 openssl s_client -connect 127.0.0.1:443 -servername pangolin.$DOMAIN 2>/dev/null | openssl x509 -noout -issuer 2>/dev/null" || true)"

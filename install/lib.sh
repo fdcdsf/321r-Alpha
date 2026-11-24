@@ -7,16 +7,16 @@ ROOT="$(dirname "$HERE")"
 INV="${INV:-$HERE/inventory.conf}"
 SECRETS="$HERE/secrets"
 # Шаги не должны зависеть от того, был ли шаг preflight: установку возобновляют
-# С любого места (--from=base|mesh|...), а каталог секретов и ключ кластера
-# Создавались только в preflight (--from=base падал на
+# с любого места (--from=base|mesh|...), а каталог секретов и ключ кластера
+# создавались только в preflight (--from=base падал на
 # «secrets/hpk: No such file or directory»).
 install -d -m 700 "$SECRETS" 2>/dev/null || mkdir -p "$SECRETS" 2>/dev/null || true
 # Установка может идти из-под systemd (авто-продолжение после
-# Смены ядра), где HOME не задан. Без этого `set -u` падает на $HOME в инвентаре.
+# смены ядра), где HOME не задан. Без этого `set -u` падает на $HOME в инвентаре.
 export HOME="${HOME:-/root}"
 # Кто запустил установку: fail2ban обязан его не банить (бан
-# Админа убивал прогон). Запоминаем в файл, т.к. продолжение после ребута идёт
-# Из-под systemd, где SSH_CLIENT уже нет.
+# админа убивал прогон). Запоминаем в файл, т.к. продолжение после ребута идёт
+# из-под systemd, где SSH_CLIENT уже нет.
 if [ -n "${SSH_CLIENT:-}" ]; then
   mkdir -p /etc/db 2>/dev/null || true
   printf '%s\n' "${SSH_CLIENT%% *}" > /etc/db/install-origin 2>/dev/null || true

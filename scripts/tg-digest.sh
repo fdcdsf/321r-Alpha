@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 321r: утренний дайджест (docs/monitoring.md). Каждое утро — одна сводка по кластеру:
-# Короткий статус каждой ноды + список проблем (или «всё ок»). Запуск — cron на control-ноде.
+# короткий статус каждой ноды + список проблем (или «всё ок»). Запуск — cron на control-ноде.
 set -u
 . /etc/db/secrets/telegram.env 2>/dev/null || exit 0
 [ -n "${TG_BOT_TOKEN:-}" ] && [ -n "${TG_CHAT_ID:-}" ] || exit 0

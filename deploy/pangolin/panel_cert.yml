@@ -3,11 +3,11 @@
 # Почему не ACME traefik: NS-делегирование
 # _acme-challenge.<домен> → dns.<домен> (оно нужно для wildcard *. <домен>) уводит
 # DNS-01 проверку traefik от Cloudflare к нашей DNS, где нет TXT, который traefik
-# Только что записал через API → «dns01: time limit exceeded» → TRAEFIK DEFAULT CERT,
-# Браузер блокирует панель. certbot (тот же путь, что у масок VPN) пишет TXT в
+# только что записал через API → «dns01: time limit exceeded» → TRAEFIK DEFAULT CERT,
+# браузер блокирует панель. certbot (тот же путь, что у масок VPN) пишет TXT в
 # Cloudflare и валидируется — работает. Продление: certbot.timer → деплой-хук
 # scripts/panel-cert-reload.sh дописывает комментарий сюда → file provider (watch)
-# Перечитывает конфиг и подхватывает новый PEM.
+# перечитывает конфиг и подхватывает новый PEM.
 tls:
   certificates:
     - certFile: /etc/letsencrypt/live/pangolin.321r.ru/fullchain.pem

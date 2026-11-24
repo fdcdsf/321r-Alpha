@@ -20,7 +20,7 @@ mkdir -p "$STAGE"
 log() { echo "$(date -Is) $*"; }
 ERRS=""
 
-# Чистим старый staging (оставляем 2 свежих прогона — инкременты restic не нужны)
+# чистим старый staging (оставляем 2 свежих прогона — инкременты restic не нужны)
 ls -1dt "$STAGE"/*/ "$STAGE"/*.gz 2>/dev/null | tail -n +3 | xargs -r rm -rf
 
 # --- 1) PostgreSQL: согласованный basebackup каждого локального инстанса ---
@@ -77,7 +77,7 @@ for d in /var/lib/dbdata/mongo-*; do
 done
 
 # --- 3) Конфиги и секреты (зашифрованы restic'ом; SOPS-ключ офлайн — см. docs/security.md) ---
-# Пути собираем по факту наличия (не на каждой ноде есть remnawave/remnanode)
+# пути собираем по факту наличия (не на каждой ноде есть remnawave/remnanode)
 cfgs=""
 for p in /etc/db /etc/amnezia /etc/cron.d /etc/systemd/system /opt/pangolin /opt/remnawave /opt/remnanode /opt/db; do
   [ -e "$p" ] && cfgs="$cfgs $p"

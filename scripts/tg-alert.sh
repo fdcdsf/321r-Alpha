@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 321r: отправка алерта в Telegram. Работает с ЛЮБОЙ ноды (простой curl, без лидера) —
-# Уведомления переживают смерть любой машины. Токен — /etc/db/secrets/telegram.env (НЕ в git).
+# уведомления переживают смерть любой машины. Токен — /etc/db/secrets/telegram.env (НЕ в git).
 # Использование: tg-alert.sh "текст сообщения"
 set -u
 . /etc/db/secrets/telegram.env 2>/dev/null || exit 0

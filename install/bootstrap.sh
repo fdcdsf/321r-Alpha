@@ -15,9 +15,9 @@ TARGET="/opt/321r"
 export DEBIAN_FRONTEND=noninteractive
 echo "321r · подготовка установщика..."
 # apt у свежей Debian/Ubuntu бывает занят (unattended-upgrades)
-# Либо оставляет НЕЗАВЕРШЁННУЮ настройку после прерванной установки. Тогда
+# либо оставляет НЕЗАВЕРШЁННУЮ настройку после прерванной установки. Тогда
 # «apt-get install» молча падает с «Could not get lock» (код 100) и установка
-# Обрывается без единого объяснения. Ждём, чиним и РЕТРАИМ, ошибки не прячем.
+# обрывается без единого объяснения. Ждём, чиним и РЕТРАИМ, ошибки не прячем.
 for i in $(seq 1 60); do pgrep -x unattended-upgr >/dev/null 2>&1 || break; sleep 10; done
 dpkg --configure -a 2>&1 | tail -5 || true
 apt_retry() { local n; for n in $(seq 1 12); do "$@" && return 0; echo "  apt занят/недоступен — жду 15 с (попытка $n)"; sleep 15; done; return 1; }
@@ -45,7 +45,7 @@ cd "$TARGET"
 chmod +x install/*.sh   # тарбол GitHub может прийти без битов выполнения
 
 # ВАЖНО: при «curl | bash» stdin — это пайп, а не терминал (мастер-вопросы
-# Читать не откуда). Переключаем ввод мастера на настоящий терминал пользователя.
+# читать не откуда). Переключаем ввод мастера на настоящий терминал пользователя.
 if [ -e /dev/tty ]; then
   exec bash install/install.sh < /dev/tty
 else

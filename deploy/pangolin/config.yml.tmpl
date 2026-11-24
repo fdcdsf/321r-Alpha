@@ -1,8 +1,8 @@
 # Pangolin config.yml (общая часть кластера + параметры узла). Референс:
 # docs.pangolin.net/self-host/clustering/deploy-a-cluster (Step "Write config.yml").
 # __EXTERNAL_IP__, __EXIT_NODE__, __APP_DB_PASS__, __SERVER_SECRET__ — рендер на ноде
-# Из /etc/db/secrets/pangolin.env. server.secret ОДИНАКОВ на всех нодах — он шифрует
-# Сертификаты в PostgreSQL (если разные — ноды не поймут друг друга).
+# из /etc/db/secrets/pangolin.env. server.secret ОДИНАКОВ на всех нодах — он шифрует
+# сертификаты в PostgreSQL (если разные — ноды не поймут друг друга).
 gerbil:
     start_port: 51820
     base_endpoint: "__EXTERNAL_IP__"
@@ -47,7 +47,7 @@ flags:
     disable_config_managed_domains: false
 
 # Управляемый конфигом домен: любое имя второго уровня (nov.321r.ru, komodo.321r.ru…)
-# Работает сразу, без персональных записей; сертификат — один wildcard на всю зону.
+# работает сразу, без персональных записей; сертификат — один wildcard на всю зону.
 domains:
     "321r.ru":
         base_domain: "321r.ru"

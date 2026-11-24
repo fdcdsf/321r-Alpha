@@ -9,7 +9,7 @@ CTRL="$CONTROL"
 OUT="/root/321r-pamyatka-$(date +%F).txt"
 
 step "Сбор секретов с нод"
-# Значения подхватываются в переменные, НЕ печатаются
+# значения подхватываются в переменные, НЕ печатаются
 R_PGPASS="$(nssh "$CTRL" "grep '^POSTGRES_PASSWORD=' /etc/db/secrets/pangolin.env | cut -d= -f2- | tr -d '\"'")"
 R_APPPASS="$(nssh "$CTRL" "grep '^APP_PASSWORD=' /etc/db/secrets/pangolin.env | cut -d= -f2- | tr -d '\"'")"
 R_PGSERV="$(nssh "$CTRL" "grep '^PANGOLIN_SERVER_SECRET=' /etc/db/secrets/pangolin.env | cut -d= -f2- | tr -d '\"'")"
@@ -155,11 +155,11 @@ $K_CORE_KEY
 EOF
 chmod 600 "$OUT"
 
-# Копия на control-ноду (файлохранилище кластера)
+# копия на control-ноду (файлохранилище кластера)
 ncp "$CTRL" "$OUT" "/root/$(basename "$OUT")"
 nssh "$CTRL" "chmod 600 /root/$(basename "$OUT")"
 
-# Отправка владельцу в Telegram (его же чат алертов)
+# отправка владельцу в Telegram (его же чат алертов)
 if [ -n "${TG_CHAT_ID:-}" ] && [ -n "$TGTOK" ]; then
   curl -s -X POST "https://api.telegram.org/bot$TGTOK/sendDocument" \
     -F "chat_id=$TG_CHAT_ID" \

@@ -1,7 +1,7 @@
 # Pangolin privateConfig.yml. Референс: deploy-a-cluster (Step "Write privateConfig.yml").
 # ACME-клиент ТОЛЬКО на одной ноде кластера (у нас — b): выдаёт сертификаты для
-# Ресурсов через DNS-01 (встроенная DNS-зона) и складывает их в PostgreSQL —
-# Остальные ноды читают их оттуда. __EMAIL__ и __ACME__ — рендер на ноде.
+# ресурсов через DNS-01 (встроенная DNS-зона) и складывает их в PostgreSQL —
+# остальные ноды читают их оттуда. __EMAIL__ и __ACME__ — рендер на ноде.
 app:
   region: "region1"
   identity_provider_mode: "org"

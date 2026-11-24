@@ -178,7 +178,7 @@ for pid in "${pids[@]}"; do wait "$pid" || true; done
 
 step "WARP-туннель для mtproto (обход РКН; только mtproto)"
 # Старая схема «tg-egress/mesh-egress через ноду-шлюз» не работает —
-# Все ноды кластера в РФ, чужой egress не спасает. WARP
+# все ноды кластера в РФ, чужой egress не спасает. WARP
 # (обфусцированный WireGuard до Cloudflare) выводит трафик mtproto наружу с IP Cloudflare.
 # Через WARP идут только помеченные mtproto.zig сокеты (SO_MARK=200 от mtbuddy).
 for a in $(node_names); do
@@ -218,7 +218,7 @@ for a in $(node_names); do
   pids+=($!)
 done
 for pid in "${pids[@]}"; do wait "$pid" || true; done
-# Старую схему сносим целиком (юниты, скрипты, маршруты, правку AllowedIPs в wg0.conf)
+# старую схему сносим целиком (юниты, скрипты, маршруты, правку AllowedIPs в wg0.conf)
 for a in $(node_names); do
   nssh "$a" 'systemctl disable --now tg-egress.service mesh-egress.service >/dev/null 2>&1 || true
     rm -f /etc/systemd/system/tg-egress.service /etc/systemd/system/mesh-egress.service
@@ -234,7 +234,7 @@ ok "старая схема egress через шлюз удалена; mtproto �
 step "Traefik-маска (passthrough vpn-* и tg)"
 # force-recreate gerbil/traefik через compose НАДЕЖНО зависает (traefik живёт в
 # netns gerbil). Динамические конфиги traefik перечитываются сами — достаточно
-# Рестарта самого traefik (gerbil не трогаем: его одиночный рестарт рвёт ingress).
+# рестарта самого traefik (gerbil не трогаем: его одиночный рестарт рвёт ingress).
 for a in $(node_names); do
   gw="$(nssh "$a" "docker network inspect pangolin --format '{{(index .IPAM.Config 0).Gateway}}'")"
   [[ "$gw" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "$a: не найден gateway Docker-сети pangolin"
