@@ -1,0 +1,9 @@
+[Unit]
+Description=db-guard — назначение первичных БД и страж кворума
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/db-guard.sh
+TimeoutStartSec=120

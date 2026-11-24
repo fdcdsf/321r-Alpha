@@ -1,0 +1,2 @@
+*/2 * * * * root /usr/local/bin/ddns.sh >> /var/log/ddns.log 2>&1
+@reboot root /usr/local/bin/ddns.sh >> /var/log/ddns.log 2>&1

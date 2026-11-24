@@ -1,0 +1,53 @@
+# Панель Remnawave (режим B, docs/remnawave.md): БД — наш слой (VIP 10.66.0.99:5433),
+# valkey — свой unix-socket. Панель слушает 127.0.0.1:3000 — наружу только через ресурс Pangolin.
+x-common: &common
+  ulimits:
+    nofile: { soft: 1048576, hard: 1048576 }
+  restart: always
+  networks: [remnawave-network]
+
+services:
+  remnawave:
+    image: remnawave/backend:3
+    container_name: remnawave
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=320
+    mem_limit: 640m
+    <<: *common
+    env_file: .env
+    volumes:
+      - valkey-socket:/var/run/valkey
+    ports:
+      - 127.0.0.1:3000:3000
+      - 127.0.0.1:3002:3001
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      remnawave-redis:
+        condition: service_healthy
+
+  remnawave-redis:
+    image: valkey/valkey:9-alpine
+    container_name: remnawave-redis
+    <<: *common
+    volumes:
+      - valkey-socket:/var/run/valkey
+    command: >
+      valkey-server --save "" --appendonly no --maxmemory-policy noeviction
+      --loglevel warning --unixsocket /var/run/valkey/valkey.sock
+      --unixsocketperm 777 --port 0
+    healthcheck:
+      test: ['CMD', 'valkey-cli', '-s', '/var/run/valkey/valkey.sock', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 3
+
+networks:
+  remnawave-network: { name: remnawave-network, driver: bridge }
+
+volumes:
+  valkey-socket: { name: valkey-socket, driver: local }

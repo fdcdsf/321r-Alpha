@@ -1,0 +1,14 @@
+[Unit]
+Description=321r Telegram bot (управление и алерты, docs/doctrine-3-2-1.md)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/tgbot.py
+Restart=always
+RestartSec=5
+MemoryMax=128M
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

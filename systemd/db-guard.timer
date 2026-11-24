@@ -1,0 +1,10 @@
+[Unit]
+Description=db-guard каждые 10 секунд
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=10s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

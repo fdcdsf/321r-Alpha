@@ -1,0 +1,15 @@
+# Valkey для Pangolin (docs/databases.md): redis-URL в конфиге Pangolin —
+# redis -> 10.66.0.2:6379. Без авторизации: слышен только в mesh
+# (DOCKER-USER пропускает mesh, ufw — 6379 из 172.16/12 и 10.0/8 добавляется при деплое).
+# Одиночный по плану; реплика на VPS-1 — §7 п.9 (данные вспомогательные).
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: valkey
+    restart: unless-stopped
+    mem_limit: 128m
+    command: ["valkey-server", "--save", "60", "1", "--appendonly", "no"]
+    ports:
+      - "10.66.0.2:6379:6379"
+    volumes:
+      - /var/lib/dbdata/valkey:/data

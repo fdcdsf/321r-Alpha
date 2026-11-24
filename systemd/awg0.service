@@ -1,0 +1,13 @@
+[Unit]
+Description=AmneziaWG mesh 321r.ru (wg0)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/awg0-up.sh
+ExecStop=/usr/bin/awg-quick down wg0
+
+[Install]
+WantedBy=multi-user.target

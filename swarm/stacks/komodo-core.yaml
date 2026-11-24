@@ -1,0 +1,56 @@
+# Komodo Core как swarm-сервис. Порт 9120 из мира закрыт
+# DOCKER-USER (mesh-only). UI для людей — ресурс Pangolin komodo.321r.ru.
+#
+# Секреты создаются НА НОДЕ (docker secret create, значения никогда в git и в чат):
+#   komodo-core-key       — X25519 приватный ключ Core. Без него Core сгенерирует новый
+#                           при каждом переезде на другую ноду — и periphery перестанут
+#                           узнавать Core. Стабильный ключ = Core «переезжает» незаметно.
+#   komodo-jwt-secret     — сессии UI не сбрасываются при рестартах/переездах
+#   komodo-webhook-secret — вебхуки git (автодеплой)
+#   komodo-admin-password — первый админ (KOMODO_INIT_ADMIN_*)
+#
+# БД — общий слой БД: VIP 10.66.0.99:27017 (haproxy → участники RS), драйвер
+# По replicaSet сам находит первичного. БД без авторизации — только mesh (решение фазы 4).
+version: "3.8"
+
+services:
+  core:
+    image: ghcr.io/moghtech/komodo-core:2
+    init: true
+    environment:
+      TZ: Etc/UTC
+      KOMODO_TITLE: Komodo
+      KOMODO_HOST: https://komodo.321r.ru
+      KOMODO_PORT: "9120"
+      KOMODO_DATABASE_URI: "mongodb://10.66.0.99:27017/?replicaSet=rs_komodo"
+      KOMODO_LOCAL_AUTH: "true"
+      KOMODO_INIT_ADMIN_USERNAME: admin
+      KOMODO_INIT_ADMIN_PASSWORD_FILE: /run/secrets/komodo-admin-password
+      KOMODO_JWT_SECRET_FILE: /run/secrets/komodo-jwt-secret
+      KOMODO_JWT_TTL: "1-wk"
+      KOMODO_WEBHOOK_SECRET_FILE: /run/secrets/komodo-webhook-secret
+      KOMODO_PRIVATE_KEY_FILE: /run/secrets/komodo-core-key
+    ports:
+      - "9120:9120"
+    secrets:
+      - komodo-core-key
+      - komodo-jwt-secret
+      - komodo-webhook-secret
+      - komodo-admin-password
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.role != state    # = плановское «role in (work,bulk)»; docker умеет только ==/!=
+      restart_policy:
+        condition: any
+
+secrets:
+  komodo-core-key:
+    external: true
+  komodo-jwt-secret:
+    external: true
+  komodo-webhook-secret:
+    external: true
+  komodo-admin-password:
+    external: true

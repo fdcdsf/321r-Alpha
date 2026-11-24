@@ -1,0 +1,9 @@
+[Unit]
+Description=Перезапрос DNS для пиров wg0 каждые 45 с
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=45s
+
+[Install]
+WantedBy=timers.target

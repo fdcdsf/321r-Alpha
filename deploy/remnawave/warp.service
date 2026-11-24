@@ -1,0 +1,14 @@
+[Unit]
+Description=WARP tunnel (AmneziaWG) для mtproto.zig — обход блокировки Telegram в РФ
+Documentation=file:/usr/local/bin/warp-321r.sh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/warp-321r.sh up
+ExecStop=/usr/local/bin/warp-321r.sh down
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,78 @@
+# Pangolin-кластер: один узел. Референс: fosrl/pangolin/config/ha-reference.
+# Отличия от референса:
+#   - БД и Valkey — общий слой БД (не свои контейнеры): postgres → VIP 10.66.0.99:5432,
+#     redis → 10.66.0.2:6379 (см. config.yml.tmpl / privateConfig.yml.tmpl);
+#   - дашборд публикуется на :8443 (по плану; «балансировщик» = multi-A DNS),
+#     порт :3000 наружу НЕ выходит;
+#   - __MESH_IP__ и __TRUSTED__ рендерятся на ноде (см. install/pangolin-up.sh).
+name: pangolin
+services:
+  pangolin:
+    image: docker.io/fosrl/pangolin:ee-postgresql-latest
+    container_name: pangolin
+    restart: unless-stopped
+    # Бюджет памяти (docs/resources.md): панель — главный пожиратель (~370 МБ RSS). Кэш кучи
+    # ограничен, mem_limit страхует ноду: cgroup-OOM валит контейнер, а не сервер.
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=320
+    mem_limit: 512m
+    volumes:
+      - ./config:/app/config
+      - ./config/certificates:/var/certificates
+      - ./config/dynamic:/var/dynamic
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/"]
+      interval: "10s"
+      timeout: "10s"
+      retries: 15
+
+  gerbil:
+    image: docker.io/fosrl/gerbil:latest
+    container_name: gerbil
+    restart: unless-stopped
+    depends_on:
+      pangolin:
+        condition: service_healthy
+    command:
+      - --reachableAt=http://__MESH_IP__:3004
+      - --generateAndSaveKeyTo=/var/config/key
+      - --remoteConfig=http://pangolin:3001/api/v1/
+      - --trusted-upstreams=__TRUSTED__
+    volumes:
+      - ./config/:/var/config
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - 51820:51820/udp # wireguard
+      - 21820:21820/udp # relay
+      - 53:53/udp # DNS
+      - 443:8443 # resources
+      - 80:80 # web (ping, redirects, ACME HTTP-01)
+      - 3004:3004 # gerbil api (только mesh: self + соседние ноды)
+      - 8443:2053 # дашборд Pangolin (основной путь — через 443, см. dynamic_config.yml)
+      - 2053:2053 # дашборд, запасной порт (план §3; нестандартные порты могут резаться)
+
+  traefik:
+    image: docker.io/traefik:v3.7.11
+    container_name: traefik
+    restart: unless-stopped
+    network_mode: service:gerbil # порты появляются в netns gerbil
+    depends_on:
+      pangolin:
+        condition: service_healthy
+    env_file:
+      - /etc/db/secrets/traefik-cf.env # CF_DNS_API_TOKEN для ACME DNS-01
+    command:
+      - --configFile=/etc/traefik/traefik_config.yml
+    volumes:
+      - ./config/traefik:/etc/traefik:ro
+      - ./config/traefik/logs:/var/log/traefik
+      - ./config/certificates:/var/certificates
+      - ./config/dynamic:/var/dynamic:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro # сертификат дашборда (certbot)
+
+networks:
+  default:
+    driver: bridge
+    name: pangolin

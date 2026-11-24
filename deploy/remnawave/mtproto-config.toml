@@ -1,0 +1,26 @@
+# mtproto.zig под маской tg.321r.ru (docs/remnawave.md): 8446 за нашим traefik passthrough.
+[general]
+use_middle_proxy = true
+
+[upstream]
+type = "auto"
+
+[server]
+port = 8446
+public_ip = "tg.321r.ru"
+public_port = 443
+max_connections = 512
+idle_timeout_sec = 120
+handshake_timeout_sec = 15
+log_level = "info"
+
+[censorship]
+tls_domain = "tg.321r.ru"
+mask = true
+mask_target = "127.0.0.1"
+mask_port = 8448
+fast_mode = true
+drs = true
+
+[access.users]
+user = "<СЕКРЕТ-КЛИЕНТА>"

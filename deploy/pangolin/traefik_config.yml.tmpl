@@ -1,0 +1,67 @@
+# Traefik config (одинаков на всех нодах, кроме почты — __EMAIL__). Основа:
+# docs.pangolin.net/self-host/clustering/deploy-a-cluster (Step "Write the Traefik configuration").
+# Наши отличия: TLS дашборда терминирует traefik на каждой ноде («балансировщик» у нас =
+# multi-A DNS; в гайде — внешний LB). Сертификат дашборда — ФАЙЛОВЫЙ (certbot →
+# dynamic/panel_cert.yml), а НЕ ACME traefik: NS-делегирование _acme-challenge.<домен> →
+# dns.<домен> (оно нужно для wildcard Pangolin) уводит DNS-01 проверку от Cloudflare к
+# Нашей DNS, где нет TXT, который traefik записал через API → TRAEFIK DEFAULT CERT
+#. Резолвер letsencrypt оставлен: его имя ждёт config.yml Pangolin.
+providers:
+  file:
+    directory: "/var/dynamic"
+    watch: true
+
+experimental:
+  plugins:
+    badger:
+      moduleName: "github.com/fosrl/badger"
+      version: "v1.7.0"
+
+log:
+  level: "INFO"
+  format: "common"
+  maxSize: 100
+  maxBackups: 3
+  maxAge: 3
+  compress: true
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+    proxyProtocol: # We trust gerbil upstream
+      trustedIPs:
+        - 0.0.0.0/0
+        - ::1/128
+    transport:
+      respondingTimeouts:
+        readTimeout: "30m"
+    http:
+      encodedCharacters:
+        allowEncodedSlash: true
+        allowEncodedQuestionMark: true
+  dashboard:
+    address: ":2053" # контейнерный порт из таблицы §3 (хост: 8443 и 2053 → 2053);
+                     # порт :3000 намеренно НЕ используется — DOCKER-USER считает
+                     # контейнерные порты, а 3000 в белом списке нет.
+                     # TLS включают роутеры (tls: {}), сертификат — файловый (panel_cert.yml).
+  dns:
+    address: ":53/udp"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: __EMAIL__
+      storage: /var/certificates/traefik-acme.json
+      # DNS-01 через Cloudflare API: HTTP-01 при multi-A (3 IP на одно имя) невозможен —
+      # Let's Encrypt multi-VA проверяет все A-записи, а challenge живёт только на той
+      # ноде, которая его создала. Токен — env_file traefik-cf.env.
+      dnsChallenge:
+        provider: cloudflare
+
+serversTransport:
+  insecureSkipVerify: true
+
+ping:
+  entryPoint: "web"

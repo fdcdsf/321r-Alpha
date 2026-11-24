@@ -1,0 +1,15 @@
+# Приоритет выше динамического роутера Pangolin: UI берётся с ЭТОЙ ноды.
+# Не зависит от Newt и того, к какому exit node подключился сайт.
+http:
+  routers:
+    zabbix-local:
+      rule: "Host(`zabbix.__DOMAIN__`)"
+      entryPoints: [websecure]
+      priority: 10000
+      tls: {}
+      service: zabbix-local
+  services:
+    zabbix-local:
+      loadBalancer:
+        servers:
+          - url: "http://zabbix-web:8080"

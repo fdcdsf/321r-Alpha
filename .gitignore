@@ -1,0 +1,19 @@
+# Секреты — никогда в git (кладутся в install/secrets на сервере установки)
+install/secrets/*
+!install/secrets/.gitkeep
+install/inventory*.conf
+*.pem
+*.key
+privatekey
+age.key
+
+# Сгенерированные установщиком
+cluster.yml
+
+# Логи и мусор
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc

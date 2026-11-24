@@ -1,0 +1,41 @@
+# Маскировка VPN/mtproto (docs/remnawave.md): SNI -> TCP passthrough -> host-сервисы.
+# VPN-нода НЕ переносится: каждая нода обслуживает только vpn-<своё имя>.
+# http(:80) -> https: браузер без схемы обязан уходить на 443 (иначе 404 без сертификата).
+http:
+  middlewares:
+    mask-https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+  routers:
+    mask-redir-vpn:
+      rule: "Host(`vpn-__NODE__.321r.ru`)"
+      entryPoints: [web]
+      service: noop@internal
+      middlewares: [mask-https-redirect]
+    mask-redir-tg:
+      rule: "Host(`tg.321r.ru`)"
+      entryPoints: [web]
+      service: noop@internal
+      middlewares: [mask-https-redirect]
+tcp:
+  routers:
+    mask-vpn:
+      rule: "HostSNI(`vpn-__NODE__.321r.ru`)"
+      entryPoints: [websecure]
+      service: mask-vpn
+      tls: { passthrough: true }
+    mask-tg:
+      rule: "HostSNI(`tg.321r.ru`)"
+      entryPoints: [websecure]
+      service: mask-tg
+      tls: { passthrough: true }
+  services:
+    mask-vpn:
+      loadBalancer:
+        servers:
+          - address: "172.22.0.1:9446"
+    mask-tg:
+      loadBalancer:
+        servers:
+          - address: "172.22.0.1:8446"

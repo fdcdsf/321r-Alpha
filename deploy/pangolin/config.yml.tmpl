@@ -1,0 +1,55 @@
+# Pangolin config.yml (общая часть кластера + параметры узла). Референс:
+# docs.pangolin.net/self-host/clustering/deploy-a-cluster (Step "Write config.yml").
+# __EXTERNAL_IP__, __EXIT_NODE__, __APP_DB_PASS__, __SERVER_SECRET__ — рендер на ноде
+# Из /etc/db/secrets/pangolin.env. server.secret ОДИНАКОВ на всех нодах — он шифрует
+# Сертификаты в PostgreSQL (если разные — ноды не поймут друг друга).
+gerbil:
+    start_port: 51820
+    base_endpoint: "__EXTERNAL_IP__"
+    exit_node_name: "__EXIT_NODE__"
+
+app:
+    dashboard_url: "https://pangolin.321r.ru"
+    log_level: "info"
+
+postgres:
+    connection_string: postgresql://pangolin:__APP_DB_PASS__@10.66.0.99:5432/pangolin
+
+traefik:
+    site_types: ["newt"] # в кластере поддерживаются только Pangolin Sites
+    file_mode: true # Pangolin пишет yaml/сертификаты в общий с traefik каталог
+    cert_resolver: "letsencrypt" # имя резолвера traefik (DNS-01/Cloudflare) — обязательно
+    prefer_wildcard_cert: true   # один сертификат *.321r.ru на все имена второго уровня
+
+server:
+    secret: "__SERVER_SECRET__"
+    cors:
+        origins: ["https://pangolin.321r.ru", "https://pangolin.321r.ru:8443", "https://pangolin.321r.ru:2053"]
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        allowed_headers: ["X-CSRF-Token", "Content-Type"]
+        credentials: false
+    # GeoIP (опционально): положить GeoLite2-Country.mmdb и GeoLite2-ASN.mmdb
+    # в config/ и раскомментировать:
+    # maxmind_db_path: "./config/GeoLite2-Country.mmdb"
+    # maxmind_asn_path: "./config/GeoLite2-ASN.mmdb"
+
+flags:
+    require_email_verification: false
+    disable_signup_without_invite: true
+    disable_user_create_org: false
+    allow_raw_resources: false
+    enable_acme_cert_sync: false
+    disable_local_sites: true
+    disable_basic_wireguard_sites: true
+    # Управляемые конфигом домены — ВКЛ: домен из config-секции domains
+    # заводится сразу с verified=true БЕЗ DNS-валидации (в кластере её плейсхолдер
+    # «Server IP Address» проходит никогда — баг Pangolin, см. docs/drills.md).
+    disable_config_managed_domains: false
+
+# Управляемый конфигом домен: любое имя второго уровня (nov.321r.ru, komodo.321r.ru…)
+# Работает сразу, без персональных записей; сертификат — один wildcard на всю зону.
+domains:
+    "321r.ru":
+        base_domain: "321r.ru"
+        prefer_wildcard_cert: true
+        cert_resolver: "letsencrypt"

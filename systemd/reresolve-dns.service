@@ -1,0 +1,7 @@
+[Unit]
+Description=Перезапрос DNS для Endpoint'ов пиров wg0
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/reresolve-dns.sh

@@ -1,0 +1,67 @@
+[Unit]
+Description=MTProto Proxy (Zig)
+Documentation=https://github.com/sleep3r/mtproto.zig
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Type=simple to match what mtbuddy installs (release.zig / tunnel.zig). The proxy
+# DOES implement sd_notify READY=1 + WATCHDOG=1, but containerized systemd
+# (Docker/LXC) frequently fails to deliver the datagram, which with Restart=always
+# restart-loops a healthy proxy. Re-enable Type=notify + WatchdogSec only behind
+# container detection + ping validation.
+Type=simple
+User=mtproto
+Group=mtproto
+WorkingDirectory=/opt/mtproto-proxy
+ExecStart=/opt/mtproto-proxy/mtproto-proxy /opt/mtproto-proxy/config.toml
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=25
+Restart=always
+RestartSec=3
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadOnlyPaths=/opt/mtproto-proxy
+
+# Syscall + kernel surface reduction. @system-service is the systemd-recommended
+# allowlist for network daemons (keeps setrlimit/timer/io); AF_NETLINK is kept
+# because glibc getaddrinfo (the curl egress helper) needs it, AF_UNIX for
+# sd_notify. This caps the blast radius of a parser RCE without breaking the data
+# plane. NOTE: validate `systemd-analyze security` + all egress modes on a real
+# host before tightening further (e.g. dropping @resources / AF_NETLINK).
+SystemCallFilter=@system-service
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+PrivateDevices=yes
+RemoveIPC=yes
+UMask=0077
+
+# Allow binding to privileged ports (443)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Limits
+LimitNOFILE=131582
+TasksMax=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+# Реестр приложения (docs/databases.md). Декларация без секретов:
+# У Mongo авторизации нет — инстансы слышны только в mesh (ufw + DOCKER-USER).
+name: komodo
+engine: mongo            # pg | mongo
+class: cluster           # cluster | local (БД живёт только на своей ноде, без репликации)
+placement: [b, c]        # S(X): данные RS только на b и c
+primary: b               # стартовый первичный RS; дальше назначает db-guard (priority)
+port: 27017              # порт приложения на VIP 10.66.0.99 (реестр = диспетчер портов)
+arbiter: a               # арбитр на третьем узле: при |S|=2 без него мажоритара нет

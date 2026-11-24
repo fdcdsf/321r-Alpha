@@ -1,0 +1,82 @@
+# Traefik dynamic_config.yml — дашборд Pangolin (роутеры UI/API/WS) и DNS-прокси.
+# Основа: docs.pangolin.net/self-host/clustering/deploy-a-cluster. Наши отличия:
+#   - роутеры дашборда привязаны к Host(pangolin.321r.ru) и висят на ДВУХ entrypoint:
+#     dashboard (:3000, публикуется как 8443/2053) И websecure (:443, через SNI-прокси
+#     gerbil) — порт 8443 из РФ режется, стандартный 443 проходит;
+#   - TLS дашборда — файловый сертификат (certbot, dynamic/panel_cert.yml), не ACME
+#     traefik: NS-делегирование _acme-challenge.<домен> уводит DNS-01 проверку от
+#     Cloudflare. Роутеры — tls: {} (берёт серт из store по SNI).
+# Ресурсные роутеры Pangolin дописывает сюда же (file_mode).
+http:
+  middlewares:
+    badger:
+      plugin:
+        badger:
+          disableForwardAuth: true
+
+  routers:
+    # Next.js router (handles everything except API and WebSocket paths)
+    next-router:
+      rule: "Host(`pangolin.321r.ru`) && !PathPrefix(`/api/v1`)"
+      service: next-service
+      entryPoints:
+        - dashboard
+        - websecure
+      middlewares:
+        - badger
+      tls: {}
+
+    # API router (handles /api/v1 paths)
+    api-router:
+      rule: "Host(`pangolin.321r.ru`) && PathPrefix(`/api/v1`)"
+      service: api-service
+      entryPoints:
+        - dashboard
+        - websecure
+      middlewares:
+        - badger
+      tls: {}
+
+    # WebSocket router
+    ws-router:
+      rule: "Host(`pangolin.321r.ru`) && PathPrefix(`/`)"
+      service: api-service
+      entryPoints:
+        - dashboard
+        - websecure
+      middlewares:
+        - badger
+      tls: {}
+
+  services:
+    next-service:
+      loadBalancer:
+        servers:
+          - url: "http://pangolin:3002"  # Next.js server
+
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://pangolin:3000"  # API/WebSocket server
+
+tcp:
+  serversTransports:
+    pp-transport-v1:
+      proxyProtocol:
+        version: 1
+    pp-transport-v2:
+      proxyProtocol:
+        version: 2
+
+udp:
+  routers:
+    dns-router:
+      entryPoints:
+        - dns
+      service: dns-service
+
+  services:
+    dns-service:
+      loadBalancer:
+        servers:
+          - address: "pangolin:53"

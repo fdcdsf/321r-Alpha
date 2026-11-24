@@ -1,0 +1,12 @@
+services:
+  remnanode:
+    container_name: remnanode
+    hostname: remnanode
+    image: remnawave/node:latest
+    restart: always
+    network_mode: host
+    env_file: .env
+    environment:
+      - NODE_PORT=2099
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro

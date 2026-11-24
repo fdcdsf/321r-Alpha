@@ -1,0 +1,29 @@
+# Uptime Kuma — мониторинг сервисов.
+# Размещение: любая нода кроме state (философия «узлы — профили»; правило
+# «Непрерывность»: «не привязывать сервис к единственной машине»).
+# ОТСТУПЛЕНИЕ от буквы плана («constraint role=work»): так Kuma не пережил бы
+# Смерть единственной work-ноды; `!= state` = плановское «role in (work,bulk)»,
+# Которое docker не умеет (только ==/!=). Проверка плана «не на VPS-1» выполняется.
+# Состояние (SQLite) — локальный том: при переезде история пуста — осознанно,
+# Пересматривается в docs/monitoring.md.
+# UI для людей — ресурс Pangolin. Порт 3001 из мира закрыт DOCKER-USER.
+version: "3.8"
+
+services:
+  kuma:
+    image: louislam/uptime-kuma:2
+    init: true
+    volumes:
+      - kuma-data:/app/data
+    ports:
+      - "3001:3001"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.role != state
+      restart_policy:
+        condition: any
+
+volumes:
+  kuma-data:
