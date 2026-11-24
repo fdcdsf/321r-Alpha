@@ -39,7 +39,9 @@ class Api:
                            'id': self.counter}).encode()
         try:
             request = urllib.request.Request(self.url, data=body, headers=headers)
-            with urllib.request.urlopen(request, timeout=25) as response:
+            # 120 с: тяжёлые вызовы (host.create с шаблонами и интерфейсами) на свежей
+            # базе уходили за 25 с и падали «API недоступен (TimeoutError)» (альфа-тест).
+            with urllib.request.urlopen(request, timeout=120) as response:
                 data = json.load(response)
         except (urllib.error.URLError, TimeoutError) as exc:
             raise Failure(f'{method}: API недоступен ({type(exc).__name__})') from None
