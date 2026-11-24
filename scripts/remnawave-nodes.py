@@ -56,7 +56,8 @@ def provision(api, nodes, ssh_key, compose):
         put = ["ssh", "-i", ssh_key, "-p", "2222", "-o", "BatchMode=yes",
                "root@" + ip, "umask 077; cat > /opt/remnanode/.env && chmod 600 /opt/remnanode/.env"]
         run(put, input=Path(env_file).read_bytes())
-        run(ssh + ["cd /opt/remnanode && (docker compose up -d || { docker rm -f remnanode >/dev/null 2>&1; docker compose up -d; })"], timeout=600)
+        run(ssh + ["cd /opt/remnanode && docker compose pull >/dev/null"], timeout=900)
+        run(ssh + ["cd /opt/remnanode && (docker compose up -d || { docker rm -f remnanode >/dev/null 2>&1; docker compose up -d; })"], timeout=180)
         run(ssh + ["docker ps --format '{{.Names}}' | grep -qx remnanode"])
         print(f"Remnawave: {name} запущена на {alias}")
         if name not in known:
